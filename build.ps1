@@ -36,6 +36,7 @@ if ($PullRequestNumber) {
 }
 
 Write-Host "Building solution..." -ForegroundColor "Magenta"
+dotnet restore ".\MiniProfiler.sln" /p:CI=true
 dotnet build ".\MiniProfiler.sln" /p:CI=true
 Write-Host "Done building." -ForegroundColor "Green"
 
@@ -44,7 +45,7 @@ if ($RunTests) {
         Write-Host "Running tests: $project (all frameworks)" -ForegroundColor "Magenta"
         Push-Location ".\tests\$project"
 
-        dotnet xunit
+        dotnet xunit -configuration Release
         if ($LastExitCode -ne 0) { 
             Write-Host "Error with tests, aborting build." -Foreground "Red"
             Pop-Location

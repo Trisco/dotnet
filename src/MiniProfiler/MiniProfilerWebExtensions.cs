@@ -50,7 +50,8 @@ namespace StackExchange.Profiling
 
             var path = VirtualPathUtility.ToAbsolute(settings.RouteBasePath).EnsureTrailingSlash();
 
-            var result = profiler.RenderIncludes(
+            var result = Internal.Render.Includes(
+                profiler,
                 path: path,
                 isAuthorized: authorized,
                 requestIDs: ids,
@@ -70,20 +71,5 @@ namespace StackExchange.Profiling
         /// <param name="profiler">The current profiling session or null.</param>
         public static IHtmlString Render(this MiniProfiler profiler) =>
             new HtmlString(profiler.RenderPlainText(true));
-
-        /// <summary>
-        /// Returns null if there is not client timing stuff
-        /// </summary>
-        /// <param name="request">The <see cref="HttpRequest"/> to get client timings from.</param>
-        public static ClientTimings GetClientTimings(this HttpRequest request)
-        {
-            var dict = new Dictionary<string, string>();
-            var form = request.Form;
-            foreach (var k in form.AllKeys)
-            {
-                dict.Add(k, form[k]);
-            }
-            return ClientTimings.FromForm(dict);
-        }
     }
 }

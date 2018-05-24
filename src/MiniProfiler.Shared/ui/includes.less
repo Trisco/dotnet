@@ -1,11 +1,11 @@
-@results-border: solid 0.5px #888888;
-@color-nuclear: #f00;
+@results-border: solid 0.5px #ababab;
+@color-warning: #f00;
 @results-border-radius: 10px;
 @color-muted: #aaaaaa;
 @color-white: #fff;
 @color-alt: #f5f5f5;
 
-.profiler-result, .profiler-queries {
+.mp-result, .mp-queries {
     color: #555;
     line-height: 1;
     font-size: 12px;
@@ -20,6 +20,11 @@
         background-color: transparent;
         overflow: visible;
         max-height: none;
+    }
+
+    pre, code {
+        font-family: Fira Code, Consolas, monospace, serif;
+        font-variant-ligatures: none;
     }
 
     table {
@@ -39,36 +44,114 @@
     }
 }
 
-.profiler-result {
+.mp-result {
     font-family: sans-serif;
 
-    tr[style*='display: block;'] {
-        display: table-row !important;
+    &.show-columns {
+        th.mp-more-columns, td.mp-more-columns {
+            display: table-cell !important;
+        }
+
+        a.mp-more-columns {
+            display: inline-block;
+        }
+
+        .mp-links span a:nth-child(1) {
+            display: none;
+        }
     }
 
-    th[style*='display: block;'], td[style*='display: block;'] {
-        display: table-cell !important;
+    &.show-trivial {
+        tr.mp-trivial {
+            display: table-row !important;
+        }
+
+        a.mp-trivial {
+            display: inline-block;
+        }
+
+        .mp-links span a:nth-child(3) {
+            display: none;
+        }
     }
 
-    .highlight {
-        animation: profiler-fadeIn 2s 1;
-    }
-
-    table.profiler-client-timings {
+    table.mp-client-timings {
         margin-top: 10px;
+
+        td:nth-child(2) {
+            width: 100%;
+            padding: 0;
+        }
+
+        td div {
+            height: 13px;
+            min-width: 1px;
+        }
+
+        .t-point div {
+            height: 4px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            box-shadow: 0 0 2px;
+        }
+
+        .t-unknown div {
+            background: #f1f1f1;
+            border: solid 1px #e8e8e8;
+        }
+
+        .t-dns div {
+            background: #8BAAD1;
+        }
+
+        .t-connect div {
+            background: #8CBB4E;
+        }
+
+        .t-ssl div {
+            background: #795892;
+        }
+
+        .t-request div {
+            background: #0099B2;
+        }
+
+        .t-response div {
+            background: #D99D35;
+        }
+
+        .t-dom div {
+            background: #BD4D32;
+        }
+
+        .t-domcontent div {
+            background: #DD4678;
+        }
+
+        .t-load div {
+            background: #1D72AA;
+        }
+
+        .t-paint div {
+            background: #bc41e3;
+        }
     }
 
-    .profiler-label {
+    .mp-label {
         color: #555555;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    .profiler-unit {
+    .mp-unit {
         color: @color-muted;
     }
 
-    .profiler-trivial {
+    .mp-more-columns {
+        display: none;
+    }
+
+    .mp-trivial {
         display: none;
 
         td, td * {
@@ -76,16 +159,11 @@
         }
     }
 
-    pre, code {
-        font-family: Fira Code, Consolas, monospace, serif;
-        font-variant-ligatures: none;
-    }
-
-    .profiler-number {
+    .mp-number {
         color: #111111;
     }
 
-    .profiler-info {
+    .mp-info {
         > div {
             white-space: nowrap;
             overflow: hidden;
@@ -95,27 +173,23 @@
             }
         }
 
-        .profiler-name {
+        .mp-name {
             display: inline-block;
             font-weight: bold;
             float: left;
         }
 
-        .profiler-machine-name, .profiler-started {
+        .mp-machine-name, .mp-started {
             text-align: right;
             float: right;
         }
 
-        .profiler-call-type {
-            font-weight: bold;
-        }
-
-        .profiler-server-time {
+        .mp-server-time {
             white-space: nowrap;
         }
     }
 
-    .profiler-timings {
+    .mp-timings {
         th {
             background-color: @color-white;
             color: @color-muted;
@@ -126,32 +200,36 @@
             white-space: nowrap;
         }
 
-        .profiler-show-more {
+        .mp-show-more {
             display: none;
         }
 
-        .profiler-duration {
+        .mp-duration {
             font-family: Consolas, monospace, serif;
             color: #111111;
             text-align: right;
         }
 
-        .profiler-indent {
+        .mp-indent {
             letter-spacing: 4px;
         }
 
-        .profiler-queries-show {
-            .profiler-number, .profiler-unit {
+        .mp-queries-show {
+            .mp-number, .mp-unit {
                 color: #0077cc;
             }
         }
 
-        .profiler-queries-duration {
+        .mp-queries-duration {
             padding-left: 6px;
+        }
+
+        &:not(.mp-client-timings) .mp-trivial:first-child {
+            display: table-row;
         }
     }
 
-    .profiler-custom-timing-overview {
+    .mp-custom-timing-overview {
         float: right;
         margin: 10px 0;
         width: auto;
@@ -166,13 +244,17 @@
         }
     }
 
-    .profiler-links {
+    .mp-links {
         margin-top: 10px;
         clear: both;
 
+        span {
+            float: right;
+        }
+
         a {
             font-size: 95%;
-            display: inline-block;
+            //display: inline-block;
             margin-left: 12px;
 
             &:first-child {
@@ -180,267 +262,323 @@
             }
         }
     }
-
-    .profiler-toggleable-links {
-        float: right;
-    }
-
-    .profiler-queries {
-        border-radius: 5px;
-        background-color: @color-white;
-
-        .profiler-stack-trace {
-            padding-bottom: 1px;
-            color: #aab;
-            margin-bottom: 5px;
-        }
-
-        pre {
-            font-family: Fira Code, Consolas, monospace, serif;
-            font-variant-ligatures: none;
-            white-space: pre-wrap;
-        }
-
-        th {
-            padding: 10px 5px 5px 5px;
-            white-space: nowrap;
-            border-bottom: solid 1px #efefef;
-        }
-
-        td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: solid 1px #efefef;
-
-            &:first-child {
-                width: 250px;
-            }
-
-            &:last-child {
-                padding-right: 15px;
-            }
-        }
-
-        .profiler-odd {
-            background-color: @color-alt;
-        }
-
-        .profiler-since-start, .profiler-duration {
-            text-align: right;
-        }
-
-        .profiler-info div {
-            text-align: right;
-            margin-bottom: 5px;
-            word-break: break-word;
-        }
-
-        .profiler-gap-info {
-            background-color: #e1e5ed;
-            opacity: 0.8;
-            color: #444;
-
-            .query {
-                word-break: break-all;
-            }
-
-            .profiler-unit {
-                color: #777;
-            }
-
-            .profiler-info {
-                text-align: right;
-            }
-
-            &.profiler-trivial-gaps {
-                display: none;
-            }
-        }
-
-        .profiler-trivial-gap-container {
-            text-align: center;
-            margin: 8px 0;
-        }
-
-        .str {
-            color: #800000;
-        }
-
-        .kwd {
-            color: #00008b;
-        }
-
-        .com {
-            color: #808080;
-        }
-
-        .typ {
-            color: #2b91af;
-        }
-
-        .lit {
-            color: #800000;
-        }
-
-        .pun {
-            color: #000000;
-        }
-
-        .pln {
-            color: #000000;
-        }
-
-        .tag {
-            color: #800000;
-        }
-
-        .atn {
-            color: #ff0000;
-        }
-
-        .atv {
-            color: #0000ff;
-        }
-
-        .dec {
-            color: #800080;
-        }
-    }
-
-    .profiler-warning {
-        &, *, .profiler-queries-show, .profiler-queries-show .profiler-unit {
-            color: @color-nuclear;
-
-            &:hover {
-                color: @color-nuclear;
-            }
-        }
-    }
-
-    .profiler-nuclear {
-        color: @color-nuclear;
-        font-weight: bold;
-
-        &:hover {
-            color: @color-nuclear;
-        }
-    }
 }
 
-@keyframes profiler-fadeIn {
+.mp-warning {
+    color: @color-warning;
+}
+
+@keyframes mp-fadeIn {
     from {
         background-color: #FFB;
     }
+
     to {
         background-color: none;
     }
 }
 
-.profiler-results {
-    z-index: 2147483643;
+.mp-overlay {
+    z-index: 2147483642;
+
+    .mp-overlay-bg {
+        z-index: 2147483643;
+        background: #000;
+        opacity: 0.5;
+        top: 0;
+        left: 0;
+        min-width: 100%;
+        position: fixed;
+        height: calc(100%);
+    }
+
+    .mp-queries {
+        display: block;
+        z-index: 2147483644;
+        top: 25px;
+        left: 25px;
+        right: 25px;
+        position: fixed;
+        max-height: ~"calc(100vh - 50px)";
+        background-color: @color-white;
+        border-radius: 2px;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+}
+
+.mp-queries {
+    font-family: sans-serif;
+
+    pre {
+        white-space: pre-wrap;
+    }
+
+    div {
+        text-align: left;
+    }
+
+    table {
+        table-layout: fixed;
+    }
+
+    td, th {
+        padding: 8px;
+        border-bottom: solid 1px #efefef;
+
+        &:first-child {
+            width: 250px;
+            text-align: right;
+
+            div {
+                text-align: right;
+                margin-bottom: 5px;
+                word-break: break-word;
+            }
+        }
+
+        &:last-child {
+            text-align: left;
+            padding-right: 15px;
+        }
+    }
+
+    .highlight {
+        animation: mp-fadeIn 2s 1;
+    }
+
+    .mp-odd {
+        background-color: @color-alt;
+    }
+
+    .mp-stack-trace {
+        padding-bottom: 1px;
+        color: #aab;
+        margin-bottom: 5px;
+    }
+
+    .mp-since-start, .mp-duration {
+        text-align: right;
+    }
+
+    .mp-gap-info {
+        background-color: #e1e5ed;
+        opacity: 0.8;
+        color: #444;
+
+        .query {
+            word-break: break-all;
+        }
+
+        .mp-unit {
+            color: #777;
+        }
+
+        &.mp-trivial-gap {
+            display: none;
+        }
+    }
+
+    .mp-trivial-gap-container {
+        text-align: center;
+        margin: 8px 0;
+    }
+
+    .mp-call-type {
+        font-weight: bold;
+    }
+    /*
+    Colorbrewer theme
+    Original: https://github.com/mbostock/colorbrewer-theme (c) Mike Bostock <mike@ocks.org>
+    Ported by Fabrício Tavares de Oliveira
+    */
+    .hljs {
+        display: block;
+        overflow-x: auto;
+        padding: 0.5em;
+        //background: #fff;
+    }
+
+    .hljs,
+    .hljs-subst {
+        color: #000;
+    }
+
+    .hljs-string,
+    .hljs-meta,
+    .hljs-symbol,
+    .hljs-template-tag,
+    .hljs-template-variable,
+    .hljs-addition {
+        color: #756bb1;
+    }
+
+    .hljs-comment,
+    .hljs-quote {
+        color: #636363;
+    }
+
+    .hljs-number,
+    .hljs-regexp,
+    .hljs-literal,
+    .hljs-bullet,
+    .hljs-link {
+        color: #31a354;
+    }
+
+    .hljs-deletion,
+    .hljs-variable {
+        color: #88f;
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-title,
+    .hljs-section,
+    .hljs-built_in,
+    .hljs-doctag,
+    .hljs-type,
+    .hljs-tag,
+    .hljs-name,
+    .hljs-selector-id,
+    .hljs-selector-class,
+    .hljs-strong {
+        color: #3182bd;
+    }
+
+    .hljs-emphasis {
+        font-style: italic;
+    }
+
+    .hljs-attribute {
+        color: #e6550d;
+    }
+}
+
+.mp-results {
+    z-index: 2147483641;
     position: fixed;
     top: 0;
 
-    &.profiler-left, &.profiler-bottomleft {
+    &.mp-left, &.mp-bottomleft {
         left: 0;
     }
 
-    &.profiler-left {
-        .profiler-controls, &.profiler-no-controls .profiler-result:last-child .profiler-button {
+    &.mp-left {
+        .mp-controls, &.mp-no-controls .mp-result:last-child .mp-button {
             border-bottom-right-radius: @results-border-radius;
         }
 
-        .profiler-button, .profiler-controls {
+        .mp-button, .mp-controls {
             border-right: @results-border;
         }
     }
 
-    &.profiler-right {
+    &.mp-right {
         right: 0;
 
-        .profiler-controls, &.profiler-no-controls .profiler-result:last-child .profiler-button {
+        .mp-controls, &.mp-no-controls .mp-result:last-child .mp-button {
             border-bottom-left-radius: @results-border-radius;
         }
 
-        .profiler-button, .profiler-controls {
+        .mp-button, .mp-controls {
             border-left: @results-border;
         }
     }
 
-    &.profiler-bottomleft {
+    &.mp-bottomleft {
         top: inherit;
         bottom: 0;
 
-        .profiler-result:first-child .profiler-button {
+        .mp-result:first-child .mp-button {
             border-top-right-radius: @results-border-radius;
         }
 
-        .profiler-button, .profiler-controls {
+        .mp-button, .mp-controls {
             border-right: @results-border;
         }
 
-        .profiler-result .profiler-button, .profiler-controls {
+        .mp-result .mp-button, .mp-controls {
             border-bottom: 0;
             border-top: @results-border;
         }
     }
 
-    &.profiler-bottomright {
+    &.mp-bottomright {
         top: inherit;
         bottom: 0;
         right: 0;
 
-        .profiler-result:first-child .profiler-button {
+        .mp-result:first-child .mp-button {
             border-top-left-radius: @results-border-radius;
         }
 
-        .profiler-button, .profiler-controls {
+        .mp-button, .mp-controls {
             border-left: @results-border;
         }
 
-        .profiler-result .profiler-button, .profiler-controls {
+        .mp-result .mp-button, .mp-controls {
             border-bottom: 0;
             border-top: @results-border;
         }
     }
 
-    .profiler-button {
-        > .profiler-number {
-            font-family: Consolas, monospace, serif;
+    .mp-button {
+        user-select: none;
+
+        .mp-warning {
+            font-weight: bold;
         }
 
-        &.new {
-            animation: profiler-fadeIn 2s 1;
+        > .mp-number {
+            font-family: Consolas, monospace, serif;
         }
     }
 
-    .profiler-button, .profiler-controls {
+    .mp-controls {
         display: none;
+    }
+
+    .mp-button, .mp-controls {
         z-index: 2147483640;
         border-bottom: @results-border;
         background-color: @color-white;
-        padding: 4px 7px;
+        padding: 4px 8px;
         text-align: right;
         cursor: pointer;
+    }
 
-        &.profiler-button-active {
-            background-color: maroon;
-            animation: none;
-            border-radius: 0 !important;
+    .mp-result {
+        position: relative;
 
-            .profiler-number, .profiler-nuclear {
-                color: @color-white;
-                font-weight: bold;
+        &.active {
+            .mp-button {
+                background-color: #207ab7;
+                animation: none;
+                border-radius: 0 !important;
+
+                .mp-number, .mp-warning {
+                    color: @color-white;
+                    font-weight: bold;
+                }
+
+                .mp-unit {
+                    color: @color-white;
+                    font-weight: normal;
+                }
             }
 
-            .profiler-unit {
-                color: @color-white;
-                font-weight: normal;
+            .mp-popup {
+                display: block;
             }
         }
     }
 
-    .profiler-controls {
+    &.new .mp-button {
+        animation: mp-fadeIn 2s 1;
+    }
+
+    .mp-controls {
         display: block;
         font-size: 12px;
         font-family: Consolas, monospace, serif;
@@ -459,7 +597,7 @@
         }
     }
 
-    .profiler-popup {
+    .mp-popup {
         display: none;
         z-index: 2147483641;
         position: absolute;
@@ -468,23 +606,24 @@
         text-align: left;
         line-height: 18px;
         overflow: auto;
-        box-shadow: 0 1px 15px #555555;
+        box-shadow: 0 1px 10px #555555;
+        border-radius: 2px;
 
-        .profiler-info {
+        .mp-info {
             margin-bottom: 3px;
             padding-bottom: 2px;
             border-bottom: 1px solid #ddd;
 
-            .profiler-name {
+            .mp-name {
                 font-size: 1.1em;
             }
 
-            .profiler-overall-duration {
+            .mp-overall-duration {
                 color: @color-muted;
             }
         }
 
-        .profiler-timings {
+        .mp-timings {
             th, td {
                 padding: 0 6px;
             }
@@ -494,35 +633,26 @@
                 padding-bottom: 3px;
             }
 
-            .profiler-label {
+            .mp-label {
                 max-width: 275px;
             }
         }
     }
 
-    .profiler-queries {
+    .mp-queries {
         display: none;
-        z-index: 2147483643;
-        top: 25px;
-        left: 25px;
-        right: 25px;
-        position: fixed;
-        overflow-y: auto;
-        overflow-x: auto;
-        background-color: @color-white;
-        max-height: ~"calc(100vh - 50px)";
     }
 
-    &.profiler-min {
-        .profiler-result {
+    &.mp-min {
+        .mp-result {
             display: none;
         }
 
-        .profiler-controls span {
+        .mp-controls span {
             display: none;
         }
 
-        .profiler-controls .profiler-min-max {
+        .mp-controls .mp-min-max {
             border-right: none;
             padding: 0;
             margin: 0;
@@ -530,50 +660,39 @@
     }
 }
 
-.profiler-queries-bg {
-    z-index: 2147483642;
-    display: none;
-    background: #000;
-    opacity: 0.5;
-    top: 0;
-    left: 0;
-    min-width: 100%;
-    position: fixed;
-    height: calc(100%);
-}
-
-.profiler-result-full {
-    .profiler-result {
+.mp-result-full {
+    .mp-result {
         width: 950px;
-        margin: 30px auto;
+        margin: 25px auto;
 
-        .profiler-button {
+        .mp-button {
             display: none;
         }
 
-        .profiler-popup {
-            .profiler-info {
+        .mp-popup {
+            .mp-info {
                 font-size: 18px;
                 border-bottom: 1px solid @color-muted;
                 padding-bottom: 3px;
                 margin-bottom: 10px;
 
-                .profiler-name {
+                .mp-name {
                     margin-bottom: 5px;
                 }
 
-                .profiler-overall-duration, .profiler-started {
+                .mp-overall-duration, .mp-started {
                     font-size: 80%;
                     color: #888;
                 }
 
-                .profiler-overall-duration {
+                .mp-overall-duration {
                     padding-right: 20px;
                 }
             }
 
-            .profiler-timings {
+            .mp-timings {
                 td, th {
+                    font-size: 13px;
                     padding-left: 8px;
                     padding-right: 8px;
                 }
@@ -583,7 +702,6 @@
                 }
 
                 td {
-                    font-size: 14px;
                     padding-bottom: 4px;
 
                     &:first-child {
@@ -591,64 +709,61 @@
                     }
                 }
 
-                .profiler-label {
+                .mp-label {
                     max-width: 550px;
                 }
             }
         }
 
-        .profiler-queries {
-            margin: 25px 0;
-
-            table {
-                width: 100%;
-            }
+        .mp-queries {
+            margin: 20px 0;
 
             th {
                 font-size: 16px;
                 color: #555;
-                line-height: 20px;
-
-                div {
-                    text-align: left;
-                }
-            }
-
-            td {
-                padding: 10px;
-                text-align: left;
-            }
-
-            .profiler-info div {
-                text-align: right;
-                margin-bottom: 5px;
             }
         }
     }
+
+    .mp-share-mp-results {
+        display: none;
+    }
 }
 
-table.profiler-results-index {
+table.mp-results-index {
     border: 0;
     border-spacing: 0;
+    font-size: 12px;
+    font-family: Arial;
 
     tbody {
         tr:nth-child(odd) {
-            background-color: #eee;
+            background-color: #e5e5e5;
         }
 
         tr:nth-child(even) {
             background-color: @color-white;
         }
-    }
 
-    tr {
-        border: 0;
+        td {
+            text-align: center;
+
+            &:first-child {
+                text-align: left;
+            }
+
+            &:nth-child(3) {
+                color: #666;
+            }
+
+            &[colspan="3"] {
+                color: @color-muted;
+            }
+        }
     }
 
     thead tr {
-        background-color: #bbb;
         color: #444;
-        font-size: 12px;
 
         th {
             padding: 5px 15px;
@@ -657,20 +772,5 @@ table.profiler-results-index {
 
     td {
         padding: 8px;
-        font-size: 12px;
     }
-}
-
-.profiler-results-index-date {
-    font-size: 11px;
-    color: #666;
-}
-
-.profiler-results-index-time {
-    text-align: center;
-}
-
-.profiler-results-none {
-    color: #888;
-    text-align: center;
 }

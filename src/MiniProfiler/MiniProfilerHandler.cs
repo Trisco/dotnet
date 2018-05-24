@@ -89,7 +89,7 @@ namespace StackExchange.Profiling
 
             switch (Path.GetFileNameWithoutExtension(path).ToLowerInvariant())
             {
-                case "includes":
+                case "includes.min":
                     output = Includes(context, path);
                     break;
 
@@ -134,9 +134,6 @@ namespace StackExchange.Profiling
                 case ".css":
                     response.ContentType = "text/css";
                     break;
-                case ".tmpl":
-                    response.ContentType = "text/x-jquery-tmpl";
-                    break;
                 default:
                     return NotFound(context);
             }
@@ -154,15 +151,7 @@ namespace StackExchange.Profiling
             context.Response.ContentType = "text/html";
 
             var path = VirtualPathUtility.ToAbsolute(Options.RouteBasePath).EnsureTrailingSlash();
-            var version = Options.VersionHash;
-            return $@"<html>
-  <head>
-    <title>List of profiling sessions</title>
-    <script id=""mini-profiler"" data-ids="""" src=""{path}includes.js?v={version}""></script>
-    <link href=""{path}includes.css?v={version}"" rel=""stylesheet"" />
-    <script>MiniProfiler.list.init({{path: '{path}', version: '{version}'}});</script>
-  </head>
-</html>";
+            return Render.ResultListHtml(Options, path);
         }
 
         /// <summary>
@@ -225,17 +214,32 @@ namespace StackExchange.Profiling
         /// <param name="context">The context to get a profiler response for.</param>
         private string GetSingleProfilerResult(HttpContext context)
         {
-            // when we're rendering as a button/popup in the corner, we'll pass ?popup=1
-            // if it's absent, we're rendering results as a full page for sharing
-            var isPopup = context.Request["popup"].HasValue();
-            // this guid is the MiniProfiler.Id property
-            // if this guid is not supplied, the last set of results needs to be
-            // displayed. The home page doesn't have profiling otherwise.
-            if (!Guid.TryParse(context.Request["id"], out var id) && Options.Storage != null)
+            Guid id;
+            ResultRequest clientRequest = null;
+            // When we're rendering as a button/popup in the corner, it's an AJAX/JSON request.
+            // If that's absent, we're rendering results as a full page for sharing.
+            var jsonRequest = context.Request.Headers["Accept"]?.Contains("application/json") == true;
+
+            // Try to parse from the JSON payload first
+            if (jsonRequest
+                && context.Request.ContentLength > 0
+                && ResultRequest.TryParse(context.Request.InputStream, out clientRequest)
+                && clientRequest.Id.HasValue)
+            {
+                id = clientRequest.Id.Value;
+            }
+            else if (Guid.TryParse(context.Request["id"], out id))
+            {
+                // We got the guid from the querystring
+            }
+            else if (Options.StopwatchProvider != null)
+            {
+                // Fall back to the last result
                 id = Options.Storage.List(1).FirstOrDefault();
+            }
 
             if (id == default(Guid))
-                return isPopup ? NotFound(context) : NotFound(context, "text/plain", "No Guid id specified on the query string");
+                return jsonRequest ? NotFound(context) : NotFound(context, "text/plain", "No Guid id specified on the query string");
 
             var profiler = Options.Storage.Load(id);
             string user = Options.UserIdProvider?.Invoke(context.Request);
@@ -244,17 +248,14 @@ namespace StackExchange.Profiling
 
             if (profiler == null)
             {
-                return isPopup ? NotFound(context) : NotFound(context, "text/plain", "No MiniProfiler results found with Id=" + id.ToString());
+                return jsonRequest ? NotFound(context) : NotFound(context, "text/plain", "No MiniProfiler results found with Id=" + id.ToString());
             }
 
             bool needsSave = false;
-            if (profiler.ClientTimings == null)
+            if (profiler.ClientTimings == null && clientRequest?.TimingCount > 0)
             {
-                profiler.ClientTimings = context.Request.GetClientTimings();
-                if (profiler.ClientTimings != null)
-                {
-                    needsSave = true;
-                }
+                profiler.ClientTimings = ClientTimings.FromRequest(clientRequest);
+                needsSave = true;
             }
 
             if (!profiler.HasUserViewed)
@@ -274,7 +275,7 @@ namespace StackExchange.Profiling
                 return @"""hidden"""; // JSON
             }
 
-            return isPopup ? ResultsJson(context, profiler) : ResultsFullPage(context, profiler);
+            return jsonRequest ? ResultsJson(context, profiler) : ResultsFullPage(context, profiler);
         }
 
         private static string ResultsJson(HttpContext context, MiniProfiler profiler)
@@ -286,56 +287,24 @@ namespace StackExchange.Profiling
         private string ResultsFullPage(HttpContext context, MiniProfiler profiler)
         {
             context.Response.ContentType = "text/html";
-            return profiler.RenderResultsHtml(VirtualPathUtility.ToAbsolute(Options.RouteBasePath).EnsureTrailingSlash());
+            return Render.SingleResultHtml(profiler, VirtualPathUtility.ToAbsolute(Options.RouteBasePath).EnsureTrailingSlash());
         }
-
-#if DEBUG
-        private static bool BypassLocalLoad = false;
-#endif
 
         private bool TryGetResource(string filename, out string resource)
         {
             filename = filename.ToLower();
 
-#if DEBUG
-            // attempt to simply load from file system, this lets up modify js without needing to recompile A MILLION TIMES 
-            if (!BypassLocalLoad)
-            {
-                var trace = new System.Diagnostics.StackTrace(true);
-                var path = Path.GetDirectoryName(trace.GetFrames()[0].GetFileName()) + "\\ui\\" + filename;
-                try
-                {
-                    resource = File.ReadAllText(path);
-                    return true;
-                }
-                catch
-                {
-                    BypassLocalLoad = true;
-                }
-            }
-#endif
-
             if (!ResourceCache.TryGetValue(filename, out resource))
             {
-                string customTemplatesPath = HttpContext.Current.Server.MapPath(Options.CustomUITemplates);
-                string customTemplateFile = Path.Combine(customTemplatesPath, filename);
-
-                if (File.Exists(customTemplateFile))
+                using (var stream = typeof(MiniProfiler).Assembly.GetManifestResourceStream("StackExchange.Profiling.ui." + filename))
                 {
-                    resource = File.ReadAllText(customTemplateFile);
-                }
-                else
-                {
-                    using (var stream = typeof(MiniProfiler).Assembly.GetManifestResourceStream("StackExchange.Profiling.ui." + filename))
+                    if (stream == null)
                     {
-                        if (stream == null)
-                        {
-                            return false;
-                        }
-                        using (var reader = new StreamReader(stream))
-                        {
-                            resource = reader.ReadToEnd();
-                        }
+                        return false;
+                    }
+                    using (var reader = new StreamReader(stream))
+                    {
+                        resource = reader.ReadToEnd();
                     }
                 }
 

@@ -74,7 +74,7 @@ namespace StackExchange.Profiling
                 mp.User = Options.UserIdProvider?.Invoke(context.Request);
 
                 // Always add this profiler's header (and any async requests before it)
-                using (mp.Step("MiniProfiler Prep"))
+                using (mp.StepIf("MiniProfiler Prep", minSaveMs: 0.1m))
                 {
                     await SetHeadersAndState(context, mp).ConfigureAwait(false);
                 }
@@ -112,14 +112,7 @@ namespace StackExchange.Profiling
         {
             if (profiler.Name == nameof(MiniProfiler))
             {
-                var routeData = (context.Features[typeof(IRoutingFeature)] as IRoutingFeature)?.RouteData;
-                if (routeData != null)
-                {
-                    profiler.Name = routeData.Values["controller"] + "/" + routeData.Values["action"];
-                }
-                else
-                {
-                    profiler.Name = StringBuilderCache.Get()
+                var url = StringBuilderCache.Get()
                         .Append(context.Request.Scheme)
                         .Append("://")
                         .Append(context.Request.Host.Value)
@@ -128,8 +121,20 @@ namespace StackExchange.Profiling
                         .Append(context.Request.QueryString.Value)
                         .ToStringRecycle();
 
+                var routeData = (context.Features[typeof(IRoutingFeature)] as IRoutingFeature)?.RouteData;
+                if (routeData != null)
+                {
+                    profiler.Name = routeData.Values["controller"] + "/" + routeData.Values["action"];
+                }
+                else
+                {
+                    profiler.Name = url;
                     if (profiler.Name.Length > 50)
                         profiler.Name = profiler.Name.Remove(50);
+                }
+                if (profiler.Root?.Name == nameof(MiniProfiler))
+                {
+                    profiler.Root.Name = url;
                 }
             }
         }
@@ -165,7 +170,7 @@ namespace StackExchange.Profiling
             string result = null;
 
             // File embed
-            if (subPath.Value.StartsWith("/includes", StringComparison.Ordinal))
+            if (subPath.Value.StartsWith("/includes.min", StringComparison.Ordinal))
             {
                 result = Embedded.GetFile(context, subPath);
             }
@@ -236,15 +241,7 @@ namespace StackExchange.Profiling
             context.Response.ContentType = "text/html";
 
             var path = context.Request.PathBase + Options.RouteBasePath.Value.EnsureTrailingSlash();
-            var version = Options.VersionHash;
-            return $@"<html>
-  <head>
-    <title>List of profiling sessions</title>
-    <script id=""mini-profiler"" data-ids="""" src=""{path}includes.js?v={version}""></script>
-    <link href=""{path}includes.css?v={version}"" rel=""stylesheet"" />
-    <script>MiniProfiler.list.init({{path: '{path}', version: '{version}'}});</script>
-  </head>
-</html>";
+            return Render.ResultListHtml(Options, path);
         }
 
         /// <summary>
@@ -288,24 +285,27 @@ namespace StackExchange.Profiling
         /// <param name="context">The context to get a profiler response for.</param>
         private async Task<string> GetSingleProfilerResultAsync(HttpContext context)
         {
-            bool jsonRequest = false;
-            IFormCollection form = null;
+            Guid id;
+            ResultRequest clientRequest = null;
+            // When we're rendering as a button/popup in the corner, it's an AJAX/JSON request.
+            // If that's absent, we're rendering results as a full page for sharing.
+            bool jsonRequest = context.Request.Headers["Accept"].FirstOrDefault()?.Contains("application/json") == true;
 
-            // When we're rendering as a button/popup in the corner, we'll pass { popup: 1 } from jQuery
-            // If it's absent, we're rendering results as a full page for sharing.
-            if (context.Request.HasFormContentType)
+            // Try to parse from the JSON payload first
+            if (jsonRequest
+                && context.Request.ContentLength > 0
+                && ResultRequest.TryParse(context.Request.Body, out clientRequest)
+                && clientRequest.Id.HasValue)
             {
-                form = await context.Request.ReadFormAsync().ConfigureAwait(false);
-                // TODO: Get rid of popup and switch to application/json Accept header detection
-                jsonRequest = form["popup"] == "1";
+                id = clientRequest.Id.Value;
             }
-
-            // This guid is the MiniProfiler.Id property. If a guid is not supplied, 
-            // the last set of results needs to be displayed.
-            string requestId = form?["id"] ?? context.Request.Query["id"];
-
-            if (!Guid.TryParse(requestId, out var id) && Options.Storage != null)
+            else if (Guid.TryParse(context.Request.Query["id"], out id))
             {
+                // We got the guid from the querystring
+            }
+            else if (Options.StopwatchProvider != null)
+            {
+                // Fall back to the last result
                 id = (await Options.Storage.ListAsync(1).ConfigureAwait(false)).FirstOrDefault();
             }
 
@@ -325,19 +325,10 @@ namespace StackExchange.Profiling
             }
 
             bool needsSave = false;
-            if (profiler.ClientTimings == null && form != null)
+            if (profiler.ClientTimings == null && clientRequest?.TimingCount > 0)
             {
-                var dict = new Dictionary<string, string>();
-                foreach (var k in form.Keys)
-                {
-                    dict.Add(k, form[k]);
-                }
-                profiler.ClientTimings = ClientTimings.FromForm(dict);
-
-                if (profiler.ClientTimings != null)
-                {
-                    needsSave = true;
-                }
+                profiler.ClientTimings = ClientTimings.FromRequest(clientRequest);
+                needsSave = true;
             }
 
             if (!profiler.HasUserViewed)
@@ -365,7 +356,7 @@ namespace StackExchange.Profiling
             else
             {
                 context.Response.ContentType = "text/html";
-                return profiler.RenderResultsHtml(context.Request.PathBase + Options.RouteBasePath.Value.EnsureTrailingSlash());
+                return Render.SingleResultHtml(profiler, context.Request.PathBase + Options.RouteBasePath.Value.EnsureTrailingSlash());
             }
         }
     }

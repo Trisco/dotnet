@@ -14,6 +14,7 @@ namespace StackExchange.Profiling
     {
         private readonly bool _enableFallback;
         private const string CacheKey = ":mini-profiler:";
+
         /// <summary>
         /// Gets the currently running MiniProfiler for the current HttpContext; null if no MiniProfiler was <see cref="Start(string, MiniProfilerBaseOptions)"/>ed.
         /// </summary>
@@ -46,7 +47,18 @@ namespace StackExchange.Profiling
         /// <param name="options">The options to start the MiniPofiler with. Likely a more-specific type underneath.</param>
         public override MiniProfiler Start(string profilerName, MiniProfilerBaseOptions options)
         {
-            var request = HttpContext.Current?.Request;
+            HttpRequest request;
+            try
+            {
+                request = HttpContext.Current?.Request;
+            }
+            catch
+            {
+                // Sometimes .Request will throw, like in Application_Start
+                // That's okay, if we're not in a request context and we have this provider,
+                // return a profiler, in that scenario.
+                return new MiniProfiler(profilerName, options);
+            }
             var path = request?.Path;
             if (path == null) return null;
 
@@ -88,14 +100,17 @@ namespace StackExchange.Profiling
             var context = HttpContext.Current;
             if (context == null || profiler == null) return;
 
-            if (discardResults && CurrentProfiler == profiler)
+            if (discardResults)
             {
-                CurrentProfiler = null;
+                if (CurrentProfiler == profiler)
+                {
+                    CurrentProfiler = null;
+                }
                 return;
             }
 
             // set the profiler name to Controller/Action or /url
-            EnsureName(profiler, context.Request);
+            EnsureName(profiler, context);
             Save(profiler);
 
             try
@@ -123,14 +138,17 @@ namespace StackExchange.Profiling
             var context = HttpContext.Current;
             if (context == null || profiler == null) return;
 
-            if (discardResults && CurrentProfiler == profiler)
+            if (discardResults)
             {
-                CurrentProfiler = null;
+                if (CurrentProfiler == profiler)
+                {
+                    CurrentProfiler = null;
+                }
                 return;
             }
 
             // set the profiler name to Controller/Action or /url
-            EnsureName(profiler, context.Request);
+            EnsureName(profiler, context);
             await SaveAsync(profiler).ConfigureAwait(false);
 
             try
@@ -149,13 +167,21 @@ namespace StackExchange.Profiling
         /// Makes sure <paramref name="profiler"/> has a Name, pulling it from route data or URL.
         /// </summary>
         /// <param name="profiler">The <see cref="MiniProfiler"/> to ensure a name is set on.</param>
-        /// <param name="request">The <see cref="HttpRequest"/> request to get the name from.</param>
-        private static void EnsureName(MiniProfiler profiler, HttpRequest request)
+        /// <param name="context">The <see cref="HttpContext"/> request to get the name from.</param>
+        private static void EnsureName(MiniProfiler profiler, HttpContext context)
         {
+            string url = null;
+            string GetUrl() => url ?? (url = StringBuilderCache.Get()
+                                    .Append(context.Request.Url.Scheme)
+                                    .Append("://")
+                                    .Append(context.Request.Url.Host)
+                                    .Append(context.Request.Url.PathAndQuery)
+                                    .ToStringRecycle());
+
             // also set the profiler name to Controller/Action or /url
             if (profiler.Name.IsNullOrWhiteSpace())
             {
-                var rc = request.RequestContext;
+                var rc = context.Request.RequestContext;
                 RouteValueDictionary values;
 
                 if (rc?.RouteData != null && (values = rc.RouteData.Values).Count > 0)
@@ -171,15 +197,15 @@ namespace StackExchange.Profiling
 
                 if (profiler.Name.IsNullOrWhiteSpace())
                 {
-                    profiler.Name = request.Url.AbsolutePath ?? string.Empty;
+                    profiler.Name = GetUrl() ?? string.Empty;
                     if (profiler.Name.Length > 50)
                         profiler.Name = profiler.Name.Remove(50);
                 }
+            }
 
-                if (profiler.Name.HasValue() && profiler.Root != null && profiler.Root.Name == null)
-                {
-                    profiler.Root.Name = profiler.Name;
-                }
+            if (profiler.Root != null && profiler.Root.Name == null)
+            {
+                profiler.Root.Name = GetUrl();
             }
         }
     }

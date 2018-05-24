@@ -11,7 +11,7 @@ namespace StackExchange.Profiling
     {
         /// <summary>
         /// The path under which ALL routes are registered in, defaults to the application root.  For example, "/myDirectory/" would yield
-        /// "/myDirectory/includes.js" rather than "/mini-profiler-resources/includes.js"
+        /// "/myDirectory/includes.min.js" rather than "/mini-profiler-resources/includes.min.js"
         /// Any setting here should be absolute for the application, e.g. "/myDirectory/"
         /// </summary>
         public PathString RouteBasePath { get; set; } = "/mini-profiler-resources";
@@ -40,11 +40,5 @@ namespace StackExchange.Profiling
         /// Function to provide the unique user ID based on the request, to store MiniProfiler IDs user
         /// </summary>
         public Func<HttpRequest, string> UserIdProvider { get; set; } = request => request.HttpContext.Connection.RemoteIpAddress.ToString();
-
-        /// <summary>
-        /// Gets or sets the content directory subfolder to load custom template overrides from.
-        /// For example, if you're using wwwroot and want to use wwwroot/profiler/, set this to "profiler/"
-        /// </summary>
-        public string UITemplatesPath { get; set; }
     }
 }
