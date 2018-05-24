@@ -75,8 +75,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Samples.Mvc5.EFCore", "samp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MiniProfiler.Providers.MongoDB", "src\MiniProfiler.Providers.MongoDB\MiniProfiler.Providers.MongoDB.csproj", "{001EFFB2-E56C-4A63-9954-79D7AEB052DB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniProfiler.Sc.Glass", "src\MiniProfiler.Sc.Glass\MiniProfiler.Sc.Glass.csproj", "{7537720D-2984-4EBF-8C8E-29BC04A26B5A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -175,10 +173,6 @@ Global
 		{001EFFB2-E56C-4A63-9954-79D7AEB052DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{001EFFB2-E56C-4A63-9954-79D7AEB052DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{001EFFB2-E56C-4A63-9954-79D7AEB052DB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7537720D-2984-4EBF-8C8E-29BC04A26B5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7537720D-2984-4EBF-8C8E-29BC04A26B5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7537720D-2984-4EBF-8C8E-29BC04A26B5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7537720D-2984-4EBF-8C8E-29BC04A26B5A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -207,7 +201,6 @@ Global
 		{CC4AD661-0F2D-4E27-934D-F321B2214E4B} = {33644D67-D9BB-4989-9B7A-98D51967059B}
 		{44F5C82B-412E-485D-B349-BA9A008BD5AC} = {E0DA4035-4D64-4BB8-8EA1-42197DE62519}
 		{001EFFB2-E56C-4A63-9954-79D7AEB052DB} = {6A510DBF-E85F-4D2C-B8F7-006DA31B3418}
-		{7537720D-2984-4EBF-8C8E-29BC04A26B5A} = {6A510DBF-E85F-4D2C-B8F7-006DA31B3418}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9373F37A-A996-4545-A251-1902C8886E3F}
